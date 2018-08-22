@@ -1,12 +1,15 @@
 Config              = {}
 Config.DrawDistance = 100.0
-Config.MaxDelivery	= 10
+Config.MaxDelivery	= 25
 Config.TruckPrice	= 1500
-Config.Locale       = 'fr'
+Config.Locale       = 'en'
 
 Config.Trucks = {
-	"mule3",
-	"phantom3"	
+	"burrito3",
+	"speedo",
+	"pony",
+	"rumpo",
+	"boxville2"
 }
 
 Config.Cloakroom = {
@@ -44,7 +47,7 @@ Config.Livraison = {
 			Type  = 1,
 			Paye = 150
 		},
-	-- a coté des flic
+	-- a cotÃ© des flic
 	Delivery2LS = {
 			Pos   = {x = 451.4836, y = -899.0954, z = 27.5},
 			Color = {r = 204, g = 204, b = 0},
