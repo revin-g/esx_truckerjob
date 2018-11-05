@@ -25,6 +25,6 @@ Locales['en'] = {
 	['blip_job'] = 'GoPostal',
 	['blip_delivery'] = 'GoPostal: Delivery',
 	['blip_goal'] = 'GoPostal: Delivery Point',
-  ['blip_depot'] = 'GoPostal: Depot',
-  ['cancel_mission'] = 'press ~INPUT_PICKUP~ to cancel.',
+	['blip_depot'] = 'GoPostal: Depot',
+	['cancel_mission'] = 'press ~INPUT_PICKUP~ to cancel.',
 }

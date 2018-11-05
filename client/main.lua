@@ -237,21 +237,21 @@ AddEventHandler('esx_truckerjob:hasExitedMarker', function(zone)
     CurrentActionMsg = ''
 end)
 
-function nouvelledestination()
+function newdestination()
 	deliverynumber = deliverynumber+1
 	deliveryTotalPaid = deliveryTotalPaid+destination.Paye
 
 	if deliverynumber >= Config.MaxDelivery then
-		MissionDeliveryStopRetourDepot()
+		MissionDeliveryStopReturnDepot()
 	else
 
-		livraisonsuite = math.random(0, 100)
+		deliverymore = math.random(0, 100)
 		
-		if livraisonsuite <= 10 then
-			MissionDeliveryStopRetourDepot()
-		elseif livraisonsuite <= 99 then
+		if deliverymore <= 10 then
+			MissionDeliveryStopReturnDepot()
+		elseif deliverymore <= 99 then
 			MissionDeliverySelect()
-		elseif livraisonsuite <= 100 then
+		elseif deliverymore <= 100 then
 			if MissionRegion == 1 then
 				MissionRegion = 2
 			elseif MissionRegion == 2 then
@@ -286,7 +286,7 @@ function returntruck_false()
 		ESX.ShowNotification(_U('need_it'))
 	else
 		ESX.ShowNotification(_U('ok_work'))
-		nouvelledestination()
+		newdestination()
 	end
 end
 
@@ -454,7 +454,7 @@ Citizen.CreateThread(function()
             if IsControlJustReleased(0, 38) and IsJobTrucker() then
 
                 if CurrentAction == 'delivery' then
-                    nouvelledestination()
+                    newdestination()
                 end
 
                 if CurrentAction == 'returntruck' then
@@ -579,9 +579,9 @@ Citizen.CreateThread(function()
 end)
 
 -------------------------------------------------
--- Fonctions
+-- Functions
 -------------------------------------------------
--- Fonction selection nouvelle mission livraison
+-- Function selection new mission delivery
 function MissionDeliverySelect()
     TriggerServerEvent('esx:clientLog', "MissionDeliverySelect num")
     TriggerServerEvent('esx:clientLog', MissionRegion)
@@ -629,7 +629,7 @@ function MissionDeliverySelect()
 	MissionDeliveryLetsGo()
 end
 
--- Fonction active mission livraison
+-- Active function mission delivery
 function MissionDeliveryLetsGo()
 	if Blips['delivery'] ~= nil then
 		RemoveBlip(Blips['delivery'])
@@ -656,7 +656,7 @@ function MissionDeliveryLetsGo()
 		ESX.ShowNotification(_U('meet_ls'))
 	elseif MissionRegion == 2 then -- Blaine County
 		ESX.ShowNotification(_U('meet_bc'))
-	elseif MissionRegion == 0 then
+	elseif MissionRegion == 0 then -- Random 1 or 2
 		ESX.ShowNotification(_U('meet_del'))
 	end
 
@@ -664,7 +664,7 @@ function MissionDeliveryLetsGo()
 end
 
 -- Deposit return function
-function MissionDeliveryStopRetourDepot()
+function MissionDeliveryStopReturnDepot()
 	destination = Config.Delivery.ReturnTruck
 	
 	Blips['delivery'] = AddBlipForCoord(destination.Pos.x,  destination.Pos.y,  destination.Pos.z)

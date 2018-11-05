@@ -38,7 +38,7 @@ Config.Zones = {
 
 Config.Delivery = {
 -------------------------------------------Los Santos
-	-- Strawberry avenue et Davis avenue
+	-- Strawberry avenue and Davis avenue
 	Delivery1LS = {
 			Pos   = {x = 121.0655, y = -1488.4984, z = 28.0},
 			Color = {r = 204, g = 204, b = 0},
@@ -47,7 +47,7 @@ Config.Delivery = {
 			Type  = 1,
 			Paye = 150
 		},
-	-- a coté des flic
+	-- next to the cop
 	Delivery2LS = {
 			Pos   = {x = 451.4836, y = -899.0954, z = 27.5},
 			Color = {r = 204, g = 204, b = 0},
@@ -56,7 +56,7 @@ Config.Delivery = {
 			Type  = 1,
 			Paye = 200
 		},
-	-- vers la plage
+	-- to the beach
 	Delivery3LS = {
 			Pos   = {x = -1129.4438, y = -1607.2420, z = 3.9},
 			Color = {r = 204, g = 204, b = 0},
@@ -74,7 +74,7 @@ Config.Delivery = {
 			Type  = 1,
 			Paye = 300
 		},
-	-- popular street et el rancho boulevard
+	-- popular street and el rancho boulevard
 	Delivery5LS = {
 			Pos   = {x = 809.5350, y = -2024.2238, z = 28.0},
 			Color = {r = 204, g = 204, b = 0},
@@ -83,7 +83,7 @@ Config.Delivery = {
 			Type  = 1,
 			Paye = 350
 		},
-	--Alta street et las lagunas boulevard
+	--Alta street and las lagunas boulevard
 	Delivery6LS = {
 			Pos   = {x = 63.2668, y = -227.9965, z = 50.0},
 			Color = {r = 204, g = 204, b = 0},
@@ -92,7 +92,7 @@ Config.Delivery = {
 			Type  = 1,
 			Paye = 150
 		},
-	--Rockford Drive Noth et boulevard del perro
+	--Rockford Drive Noth and boulevard del perro
 	Delivery7LS = {
 			Pos   = {x = -1338.6923, y = -402.4188, z = 34.9},
 			Color = {r = 204, g = 204, b = 0},
@@ -101,7 +101,7 @@ Config.Delivery = {
 			Type  = 1,
 			Paye = 200
 		},
-	--Rockford Drive Noth et boulevard del perro
+	--Rockford Drive Noth and boulevard del perro
 	Delivery8LS = {
 			Pos   = {x = 548.6097, y = -206.3496, z = 52.5},
 			Color = {r = 204, g = 204, b = 0},
@@ -147,7 +147,7 @@ Config.Delivery = {
 			Type  = 1,
 			Paye = 350
 		},
-	-- Algonquin boulevard et cholla springs avenue
+	-- Algonquin boulevard and cholla springs avenue
 	Delivery3BC = {
 			Pos   = {x =1685.1549, y = 3752.0849, z = 33.0},
 			Color = {r = 204, g = 204, b = 0},
@@ -192,7 +192,7 @@ Config.Delivery = {
 			Type  = 1,
 			Paye = 350
 		},
-	-- Paleto boulevard et Procopio drive
+	-- Paleto boulevard and Procopio drive
 	Delivery8BC = {
 			Pos   = {x = 107.9181, y = 6605.9750, z = 30.8},
 			Color = {r = 204, g = 204, b = 0},
@@ -201,7 +201,7 @@ Config.Delivery = {
 			Type  = 1,
 			Paye = 400
 		},
-	-- Marina drive et joshua road
+	-- Marina drive and joshua road
 	Delivery9BC = {
 			Pos   = {x = 916.6915, y = 3568.7783, z = 32.7},
 			Color = {r = 204, g = 204, b = 0},
