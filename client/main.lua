@@ -14,19 +14,19 @@ Citizen.CreateThread(function()
 	end
 end)
 --------------------------------------------------------------------------------
--- NE RIEN MODIFIER
+-- DO NOT MODIFY
 --------------------------------------------------------------------------------
 local namezone = "Delivery"
 local namezonenum = 0
 local namezoneregion = 0
 local MissionRegion = 0
-local viemaxvehicule = 1000
-local argentretire = 0
-local livraisonTotalPaye = 0
-local livraisonnombre = 0
-local MissionRetourCamion = false
+local vehiclemaxhealth = 1000
+local moneywithdrawn = 0
+local deliveryTotalPaid = 0
+local deliverynumber = 0
+local MissionReturnTruck = false
 local MissionNum = 0
-local MissionLivraison = false
+local MissionDelivery = false
 local isInService = false
 local PlayerData              = nil
 local GUI                     = {}
@@ -35,8 +35,8 @@ local hasAlreadyEnteredMarker = false
 local lastZone                = nil
 local Blips                   = {}
 
-local plaquevehicule = ""
-local plaquevehiculeactuel = ""
+local vehicleplate = ""
+local currentvehicleplate = ""
 local CurrentAction           = nil
 local CurrentActionMsg        = ''
 local CurrentActionData       = {}
@@ -109,8 +109,8 @@ function MenuVehicleSpawner()
 			ESX.Game.SpawnVehicle(data.current.value, Config.Zones.VehicleSpawnPoint.Pos, 270.0, function(vehicle)
 				platenum = math.random(10000, 99999)
 				SetVehicleNumberPlateText(vehicle, "WAL"..platenum)             
-                MissionLivraisonSelect()
-				plaquevehicule = "WAL"..platenum
+                MissionDeliverySelect()
+				vehicleplate = "WAL"..platenum
 				if data.current.value == 'phantom3' then
 					ESX.Game.SpawnVehicle("trailers2", Config.Zones.VehicleSpawnPoint.Pos, 270.0, function(trailer)
 					    AttachVehicleToTrailer(vehicle, trailer, 1.1)
@@ -159,7 +159,7 @@ AddEventHandler('esx_truckerjob:hasEnteredMarker', function(zone)
 
 	if zone == 'VehicleSpawner' then
 		if isInService and IsJobTrucker() then
-			if MissionRetourCamion or MissionLivraison then
+			if MissionReturnTruck or MissionDelivery then
 				CurrentAction = 'hint'
                 CurrentActionMsg  = _U('already_have_truck')
 			else
@@ -169,11 +169,11 @@ AddEventHandler('esx_truckerjob:hasEnteredMarker', function(zone)
 	end
 
 	if zone == namezone then
-		if isInService and MissionLivraison and MissionNum == namezonenum and MissionRegion == namezoneregion and IsJobTrucker() then
+		if isInService and MissionDelivery and MissionNum == namezonenum and MissionRegion == namezoneregion and IsJobTrucker() then
 			if IsPedSittingInAnyVehicle(playerPed) and IsATruck() then
-				VerifPlaqueVehiculeActuel()
+				VerifyCurrentVehiclePlate()
 				
-				if plaquevehicule == plaquevehiculeactuel then
+				if vehicleplate == currentvehicleplate then
 					if Blips['delivery'] ~= nil then
 						RemoveBlip(Blips['delivery'])
 						Blips['delivery'] = nil
@@ -192,39 +192,39 @@ AddEventHandler('esx_truckerjob:hasEnteredMarker', function(zone)
 		end
 	end
 
-	if zone == 'AnnulerMission' then
-		if isInService and MissionLivraison and IsJobTrucker() then
+	if zone == 'CancelMission' then
+		if isInService and MissionDelivery and IsJobTrucker() then
 			if IsPedSittingInAnyVehicle(playerPed) and IsATruck() then
-				VerifPlaqueVehiculeActuel()
+				VerifyCurrentVehiclePlate()
 
-                TriggerServerEvent('esx:clientLog', "3'" .. json.encode(plaquevehicule) .. "' '" .. json.encode(plaquevehiculeactuel) .. "'")
+                TriggerServerEvent('esx:clientLog', "3'" .. json.encode(vehicleplate) .. "' '" .. json.encode(currentvehicleplate) .. "'")
 				
-				if plaquevehicule == plaquevehiculeactuel then
-                    CurrentAction     = 'retourcamionannulermission'
+				if vehicleplate == currentvehicleplate then
+                    CurrentAction     = 'returntruckcancelmission'
                     CurrentActionMsg  = _U('cancel_mission')
 				else
 					CurrentAction = 'hint'
                     CurrentActionMsg  = _U('not_your_truck')
 				end
 			else
-                CurrentAction     = 'retourcamionperduannulermission'
+                CurrentAction     = 'returnlosttruckcancelmission'
 			end
 		end
 	end
 
-	if zone == 'RetourCamion' then
-		if isInService and MissionRetourCamion and IsJobTrucker() then
+	if zone == 'ReturnTruck' then
+		if isInService and MissionReturnTruck and IsJobTrucker() then
 			if IsPedSittingInAnyVehicle(playerPed) and IsATruck() then
-				VerifPlaqueVehiculeActuel()
+				VerifyCurrentVehiclePlate()
 
-				if plaquevehicule == plaquevehiculeactuel then
-                    CurrentAction     = 'retourcamion'
+				if vehicleplate == currentvehicleplate then
+                    CurrentAction     = 'returntruck'
 				else
-                    CurrentAction     = 'retourcamionannulermission'
+                    CurrentAction     = 'returntruckcancelmission'
                     CurrentActionMsg  = _U('not_your_truck')
 				end
 			else
-                CurrentAction     = 'retourcamionperdu'
+                CurrentAction     = 'returnlosttruck'
 			end
 		end
 	end
@@ -238,51 +238,51 @@ AddEventHandler('esx_truckerjob:hasExitedMarker', function(zone)
 end)
 
 function nouvelledestination()
-	livraisonnombre = livraisonnombre+1
-	livraisonTotalPaye = livraisonTotalPaye+destination.Paye
+	deliverynumber = deliverynumber+1
+	deliveryTotalPaid = deliveryTotalPaid+destination.Paye
 
-	if livraisonnombre >= Config.MaxDelivery then
-		MissionLivraisonStopRetourDepot()
+	if deliverynumber >= Config.MaxDelivery then
+		MissionDeliveryStopRetourDepot()
 	else
 
 		livraisonsuite = math.random(0, 100)
 		
 		if livraisonsuite <= 10 then
-			MissionLivraisonStopRetourDepot()
+			MissionDeliveryStopRetourDepot()
 		elseif livraisonsuite <= 99 then
-			MissionLivraisonSelect()
+			MissionDeliverySelect()
 		elseif livraisonsuite <= 100 then
 			if MissionRegion == 1 then
 				MissionRegion = 2
 			elseif MissionRegion == 2 then
 				MissionRegion = 1
 			end
-			MissionLivraisonSelect()	
+			MissionDeliverySelect()	
 		end
 	end
 end
 
-function retourcamion_oui()
+function returntruck_true()
 	if Blips['delivery'] ~= nil then
 		RemoveBlip(Blips['delivery'])
 		Blips['delivery'] = nil
 	end
 	
-	if Blips['annulermission'] ~= nil then
-		RemoveBlip(Blips['annulermission'])
-		Blips['annulermission'] = nil
+	if Blips['cancelmission'] ~= nil then
+		RemoveBlip(Blips['cancelmission'])
+		Blips['cancelmission'] = nil
 	end
 	
-	MissionRetourCamion = false
-	livraisonnombre = 0
+	MissionReturnTruck = false
+	deliverynumber = 0
 	MissionRegion = 0
 	
-	donnerlapaye()
+	givepayroll()
 end
 
-function retourcamion_non()
+function returntruck_false()
 	
-	if livraisonnombre >= Config.MaxDelivery then
+	if deliverynumber >= Config.MaxDelivery then
 		ESX.ShowNotification(_U('need_it'))
 	else
 		ESX.ShowNotification(_U('ok_work'))
@@ -290,68 +290,68 @@ function retourcamion_non()
 	end
 end
 
-function retourcamionperdu_oui()
+function returnlosttruck_true()
 	if Blips['delivery'] ~= nil then
 		RemoveBlip(Blips['delivery'])
 		Blips['delivery'] = nil
 	end
 	
-	if Blips['annulermission'] ~= nil then
-		RemoveBlip(Blips['annulermission'])
-		Blips['annulermission'] = nil
+	if Blips['cancelmission'] ~= nil then
+		RemoveBlip(Blips['cancelmission'])
+		Blips['cancelmission'] = nil
 	end
-	MissionRetourCamion = false
-	livraisonnombre = 0
+	MissionReturnTruck = false
+	deliverynumber = 0
 	MissionRegion = 0
 	
-	donnerlapayesanscamion()
+	givemoveyinthetruck()
 end
 
-function retourcamionperdu_non()
+function returnlosttruck_false()
 	ESX.ShowNotification(_U('scared_me'))
 end
 
-function retourcamionannulermission_oui()
+function returntruckcancelmission_true()
 	if Blips['delivery'] ~= nil then
 		RemoveBlip(Blips['delivery'])
 		Blips['delivery'] = nil
 	end
 	
-	if Blips['annulermission'] ~= nil then
-		RemoveBlip(Blips['annulermission'])
-		Blips['annulermission'] = nil
+	if Blips['cancelmission'] ~= nil then
+		RemoveBlip(Blips['cancelmission'])
+		Blips['cancelmission'] = nil
 	end
 	
-	MissionLivraison = false
-	livraisonnombre = 0
+	MissionDelivery = false
+	deliverynumber = 0
 	MissionRegion = 0
 	
-	donnerlapaye()
+	givepayroll()
 end
 
-function retourcamionannulermission_non()	
+function returntruckcancelmission_false()	
 	ESX.ShowNotification(_U('resume_delivery'))
 end
 
-function retourcamionperduannulermission_oui()
+function returnlosttruckcancelmission_true()
 	if Blips['delivery'] ~= nil then
 		RemoveBlip(Blips['delivery'])
 		Blips['delivery'] = nil
 	end
 	
-	if Blips['annulermission'] ~= nil then
-		RemoveBlip(Blips['annulermission'])
-		Blips['annulermission'] = nil
+	if Blips['cancelmission'] ~= nil then
+		RemoveBlip(Blips['cancelmission'])
+		Blips['cancelmission'] = nil
 	end
 	
-	MissionLivraison = false
-	livraisonnombre = 0
+	MissionDelivery = false
+	deliverynumber = 0
 	MissionRegion = 0
 	
-	donnerlapayesanscamion()
+	givemoveyinthetruck()
 end
 
-function retourcamionperduannulermission_non()	
+function returnlosttruckcancelmission_false()	
 	ESX.ShowNotification(_U('resume_delivery'))
 end
 
@@ -360,81 +360,81 @@ function round(num, numDecimalPlaces)
     return math.floor(num * mult + 0.5) / mult
 end
 
-function donnerlapaye()
+function givepayroll()
 	ped = GetPlayerPed(-1)
 	vehicle = GetVehiclePedIsIn(ped, false)
-	vievehicule = GetVehicleEngineHealth(vehicle)
-	calculargentretire = round(viemaxvehicule-vievehicule)
+	vehiclehealth = GetVehicleEngineHealth(vehicle)
+	moneywithdrawncalculation = round(vehiclemaxhealth-vehiclehealth)
 	
-	if calculargentretire <= 0 then
-		argentretire = 0
+	if moneywithdrawncalculation <= 0 then
+		moneywithdrawn = 0
 	else
-		argentretire = calculargentretire
+		moneywithdrawn = moneywithdrawncalculation
 	end
 
     ESX.Game.DeleteVehicle(vehicle)
 
-	local amount = livraisonTotalPaye-argentretire
+	local amount = deliveryTotalPaid-moneywithdrawn
 	
-	if vievehicule >= 1 then
-		if livraisonTotalPaye == 0 then
+	if vehiclehealth >= 1 then
+		if deliveryTotalPaid == 0 then
 			ESX.ShowNotification(_U('not_delivery'))
 			ESX.ShowNotification(_U('pay_repair'))
-			ESX.ShowNotification(_U('repair_minus')..argentretire)
+			ESX.ShowNotification(_U('repair_minus')..moneywithdrawn)
 			TriggerServerEvent("esx_truckerjob:pay", amount)
-			livraisonTotalPaye = 0
+			deliveryTotalPaid = 0
 		else
-			if argentretire <= 0 then
-				ESX.ShowNotification(_U('shipments_plus')..livraisonTotalPaye)
+			if moneywithdrawn <= 0 then
+				ESX.ShowNotification(_U('shipments_plus')..deliveryTotalPaid)
 				TriggerServerEvent("esx_truckerjob:pay", amount)
-				livraisonTotalPaye = 0
+				deliveryTotalPaid = 0
 			else
-				ESX.ShowNotification(_U('shipments_plus')..livraisonTotalPaye)
-				ESX.ShowNotification(_U('repair_minus')..argentretire)
+				ESX.ShowNotification(_U('shipments_plus')..deliveryTotalPaid)
+				ESX.ShowNotification(_U('repair_minus')..moneywithdrawn)
 					TriggerServerEvent("esx_truckerjob:pay", amount)
-				livraisonTotalPaye = 0
+				deliveryTotalPaid = 0
 			end
 		end
 	else
-		if livraisonTotalPaye ~= 0 and amount <= 0 then
+		if deliveryTotalPaid ~= 0 and amount <= 0 then
 			ESX.ShowNotification(_U('truck_state'))
-			livraisonTotalPaye = 0
+			deliveryTotalPaid = 0
 		else
-			if argentretire <= 0 then
-				ESX.ShowNotification(_U('shipments_plus')..livraisonTotalPaye)
+			if moneywithdrawn <= 0 then
+				ESX.ShowNotification(_U('shipments_plus')..deliveryTotalPaid)
 					TriggerServerEvent("esx_truckerjob:pay", amount)
-				livraisonTotalPaye = 0
+				deliveryTotalPaid = 0
 			else
-				ESX.ShowNotification(_U('shipments_plus')..livraisonTotalPaye)
-				ESX.ShowNotification(_U('repair_minus')..argentretire)
+				ESX.ShowNotification(_U('shipments_plus')..deliveryTotalPaid)
+				ESX.ShowNotification(_U('repair_minus')..moneywithdrawn)
 				TriggerServerEvent("esx_truckerjob:pay", amount)
-				livraisonTotalPaye = 0
+				deliveryTotalPaid = 0
 			end
 		end
 	end
 end
 
-function donnerlapayesanscamion()
+function givemoveyinthetruck()
 	ped = GetPlayerPed(-1)
-	argentretire = Config.TruckPrice
+	moneywithdrawn = Config.TruckPrice
 	
-	-- donne paye
-	local amount = livraisonTotalPaye-argentretire
+	-- give pay
+	local amount = deliveryTotalPaid-moneywithdrawn
 	
-	if livraisonTotalPaye == 0 then
+	if deliveryTotalPaid == 0 then
 		ESX.ShowNotification(_U('no_delivery_no_truck'))
-		ESX.ShowNotification(_U('truck_price')..argentretire)
+		ESX.ShowNotification(_U('truck_price')..moneywithdrawn)
 					TriggerServerEvent("esx_truckerjob:pay", amount)
-		livraisonTotalPaye = 0
+		deliveryTotalPaid = 0
 	else
 		if amount >= 1 then
-			ESX.ShowNotification(_U('shipments_plus')..livraisonTotalPaye)
-			ESX.ShowNotification(_U('truck_price')..argentretire)
+			ESX.ShowNotification(_U('shipments_plus')..deliveryTotalPaid)
+			ESX.ShowNotification(_U('truck_price')..moneywithdrawn)
 					TriggerServerEvent("esx_truckerjob:pay", amount)
-			livraisonTotalPaye = 0
+			deliveryTotalPaid = 0
 		else
 			ESX.ShowNotification(_U('truck_state'))
-			livraisonTotalPaye = 0
+			deliveryTotalPaid = 0
 		end
 	end
 end
@@ -457,20 +457,20 @@ Citizen.CreateThread(function()
                     nouvelledestination()
                 end
 
-                if CurrentAction == 'retourcamion' then
-                    retourcamion_oui()
+                if CurrentAction == 'returntruck' then
+                    returntruck_true()
                 end
 
-                if CurrentAction == 'retourcamionperdu' then
-                    retourcamionperdu_oui()
+                if CurrentAction == 'returnlosttruck' then
+                    returnlosttruck_true()
                 end
 
-                if CurrentAction == 'retourcamionannulermission' then
-                    retourcamionannulermission_oui()
+                if CurrentAction == 'returntruckcancelmission' then
+                    returntruckcancelmission_true()
                 end
 
-                if CurrentAction == 'retourcamionperduannulermission' then
-                    retourcamionperduannulermission_oui()
+                if CurrentAction == 'returnlosttruckcancelmission' then
+                    returnlosttruckcancelmission_true()
                 end
 
                 CurrentAction = nil
@@ -486,10 +486,10 @@ Citizen.CreateThread(function()
 	while true do
 		Wait(0)
 		
-		if MissionLivraison then
+		if MissionDelivery then
 			DrawMarker(destination.Type, destination.Pos.x, destination.Pos.y, destination.Pos.z, 0.0, 0.0, 0.0, 0, 0.0, 0.0, destination.Size.x, destination.Size.y, destination.Size.z, destination.Color.r, destination.Color.g, destination.Color.b, 100, false, true, 2, false, false, false, false)
-			DrawMarker(Config.Livraison.AnnulerMission.Type, Config.Livraison.AnnulerMission.Pos.x, Config.Livraison.AnnulerMission.Pos.y, Config.Livraison.AnnulerMission.Pos.z, 0.0, 0.0, 0.0, 0, 0.0, 0.0, Config.Livraison.AnnulerMission.Size.x, Config.Livraison.AnnulerMission.Size.y, Config.Livraison.AnnulerMission.Size.z, Config.Livraison.AnnulerMission.Color.r, Config.Livraison.AnnulerMission.Color.g, Config.Livraison.AnnulerMission.Color.b, 100, false, true, 2, false, false, false, false)
-		elseif MissionRetourCamion then
+			DrawMarker(Config.Delivery.CancelMission.Type, Config.Delivery.CancelMission.Pos.x, Config.Delivery.CancelMission.Pos.y, Config.Delivery.CancelMission.Pos.z, 0.0, 0.0, 0.0, 0, 0.0, 0.0, Config.Delivery.CancelMission.Size.x, Config.Delivery.CancelMission.Size.y, Config.Delivery.CancelMission.Size.z, Config.Delivery.CancelMission.Color.r, Config.Delivery.CancelMission.Color.g, Config.Delivery.CancelMission.Color.b, 100, false, true, 2, false, false, false, false)
+		elseif MissionReturnTruck then
 			DrawMarker(destination.Type, destination.Pos.x, destination.Pos.y, destination.Pos.z, 0.0, 0.0, 0.0, 0, 0.0, 0.0, destination.Size.x, destination.Size.y, destination.Size.z, destination.Color.r, destination.Color.g, destination.Color.b, 100, false, true, 2, false, false, false, false)
 		end
 
@@ -540,7 +540,7 @@ Citizen.CreateThread(function()
 				end
 			end
 			
-			for k,v in pairs(Config.Livraison) do
+			for k,v in pairs(Config.Delivery) do
 				if(GetDistanceBetweenCoords(coords, v.Pos.x, v.Pos.y, v.Pos.z, true) < v.Size.x) then
 					isInMarker  = true
 					currentZone = k
@@ -582,63 +582,63 @@ end)
 -- Fonctions
 -------------------------------------------------
 -- Fonction selection nouvelle mission livraison
-function MissionLivraisonSelect()
-    TriggerServerEvent('esx:clientLog', "MissionLivraisonSelect num")
+function MissionDeliverySelect()
+    TriggerServerEvent('esx:clientLog', "MissionDeliverySelect num")
     TriggerServerEvent('esx:clientLog', MissionRegion)
 	if MissionRegion == 0 then
 
-            TriggerServerEvent('esx:clientLog', "MissionLivraisonSelect 1")
+            TriggerServerEvent('esx:clientLog', "MissionDeliverySelect 1")
 		MissionRegion = math.random(1,2)
 	end
 	
 	if MissionRegion == 1 then -- Los santos
-            TriggerServerEvent('esx:clientLog', "MissionLivraisonSelect 2")
+            TriggerServerEvent('esx:clientLog', "MissionDeliverySelect 2")
 		MissionNum = math.random(1, 10)
 	
-		if MissionNum == 1 then destination = Config.Livraison.Delivery1LS namezone = "Delivery1LS" namezonenum = 1 namezoneregion = 1
-		elseif MissionNum == 2 then destination = Config.Livraison.Delivery2LS namezone = "Delivery2LS" namezonenum = 2 namezoneregion = 1
-		elseif MissionNum == 3 then destination = Config.Livraison.Delivery3LS namezone = "Delivery3LS" namezonenum = 3 namezoneregion = 1
-		elseif MissionNum == 4 then destination = Config.Livraison.Delivery4LS namezone = "Delivery4LS" namezonenum = 4 namezoneregion = 1
-		elseif MissionNum == 5 then destination = Config.Livraison.Delivery5LS namezone = "Delivery5LS" namezonenum = 5 namezoneregion = 1
-		elseif MissionNum == 6 then destination = Config.Livraison.Delivery6LS namezone = "Delivery6LS" namezonenum = 6 namezoneregion = 1
-		elseif MissionNum == 7 then destination = Config.Livraison.Delivery7LS namezone = "Delivery7LS" namezonenum = 7 namezoneregion = 1
-		elseif MissionNum == 8 then destination = Config.Livraison.Delivery8LS namezone = "Delivery8LS" namezonenum = 8 namezoneregion = 1
-		elseif MissionNum == 9 then destination = Config.Livraison.Delivery9LS namezone = "Delivery9LS" namezonenum = 9 namezoneregion = 1
-		elseif MissionNum == 10 then destination = Config.Livraison.Delivery10LS namezone = "Delivery10LS" namezonenum = 10 namezoneregion = 1
+		if MissionNum == 1 then destination = Config.Delivery.Delivery1LS namezone = "Delivery1LS" namezonenum = 1 namezoneregion = 1
+		elseif MissionNum == 2 then destination = Config.Delivery.Delivery2LS namezone = "Delivery2LS" namezonenum = 2 namezoneregion = 1
+		elseif MissionNum == 3 then destination = Config.Delivery.Delivery3LS namezone = "Delivery3LS" namezonenum = 3 namezoneregion = 1
+		elseif MissionNum == 4 then destination = Config.Delivery.Delivery4LS namezone = "Delivery4LS" namezonenum = 4 namezoneregion = 1
+		elseif MissionNum == 5 then destination = Config.Delivery.Delivery5LS namezone = "Delivery5LS" namezonenum = 5 namezoneregion = 1
+		elseif MissionNum == 6 then destination = Config.Delivery.Delivery6LS namezone = "Delivery6LS" namezonenum = 6 namezoneregion = 1
+		elseif MissionNum == 7 then destination = Config.Delivery.Delivery7LS namezone = "Delivery7LS" namezonenum = 7 namezoneregion = 1
+		elseif MissionNum == 8 then destination = Config.Delivery.Delivery8LS namezone = "Delivery8LS" namezonenum = 8 namezoneregion = 1
+		elseif MissionNum == 9 then destination = Config.Delivery.Delivery9LS namezone = "Delivery9LS" namezonenum = 9 namezoneregion = 1
+		elseif MissionNum == 10 then destination = Config.Delivery.Delivery10LS namezone = "Delivery10LS" namezonenum = 10 namezoneregion = 1
 		end
 		
 	elseif MissionRegion == 2 then -- Blaine County
 
-            TriggerServerEvent('esx:clientLog', "MissionLivraisonSelect 3")
+            TriggerServerEvent('esx:clientLog', "MissionDeliverySelect 3")
 		MissionNum = math.random(1, 10)
 	
-		if MissionNum == 1 then destination = Config.Livraison.Delivery1BC namezone = "Delivery1BC" namezonenum = 1 namezoneregion = 2
-		elseif MissionNum == 2 then destination = Config.Livraison.Delivery2BC namezone = "Delivery2BC" namezonenum = 2 namezoneregion = 2
-		elseif MissionNum == 3 then destination = Config.Livraison.Delivery3BC namezone = "Delivery3BC" namezonenum = 3 namezoneregion = 2
-		elseif MissionNum == 4 then destination = Config.Livraison.Delivery4BC namezone = "Delivery4BC" namezonenum = 4 namezoneregion = 2
-		elseif MissionNum == 5 then destination = Config.Livraison.Delivery5BC namezone = "Delivery5BC" namezonenum = 5 namezoneregion = 2
-		elseif MissionNum == 6 then destination = Config.Livraison.Delivery6BC namezone = "Delivery6BC" namezonenum = 6 namezoneregion = 2
-		elseif MissionNum == 7 then destination = Config.Livraison.Delivery7BC namezone = "Delivery7BC" namezonenum = 7 namezoneregion = 2
-		elseif MissionNum == 8 then destination = Config.Livraison.Delivery8BC namezone = "Delivery8BC" namezonenum = 8 namezoneregion = 2
-		elseif MissionNum == 9 then destination = Config.Livraison.Delivery9BC namezone = "Delivery9BC" namezonenum = 9 namezoneregion = 2
-		elseif MissionNum == 10 then destination = Config.Livraison.Delivery10BC namezone = "Delivery10BC" namezonenum = 10 namezoneregion = 2
+		if MissionNum == 1 then destination = Config.Delivery.Delivery1BC namezone = "Delivery1BC" namezonenum = 1 namezoneregion = 2
+		elseif MissionNum == 2 then destination = Config.Delivery.Delivery2BC namezone = "Delivery2BC" namezonenum = 2 namezoneregion = 2
+		elseif MissionNum == 3 then destination = Config.Delivery.Delivery3BC namezone = "Delivery3BC" namezonenum = 3 namezoneregion = 2
+		elseif MissionNum == 4 then destination = Config.Delivery.Delivery4BC namezone = "Delivery4BC" namezonenum = 4 namezoneregion = 2
+		elseif MissionNum == 5 then destination = Config.Delivery.Delivery5BC namezone = "Delivery5BC" namezonenum = 5 namezoneregion = 2
+		elseif MissionNum == 6 then destination = Config.Delivery.Delivery6BC namezone = "Delivery6BC" namezonenum = 6 namezoneregion = 2
+		elseif MissionNum == 7 then destination = Config.Delivery.Delivery7BC namezone = "Delivery7BC" namezonenum = 7 namezoneregion = 2
+		elseif MissionNum == 8 then destination = Config.Delivery.Delivery8BC namezone = "Delivery8BC" namezonenum = 8 namezoneregion = 2
+		elseif MissionNum == 9 then destination = Config.Delivery.Delivery9BC namezone = "Delivery9BC" namezonenum = 9 namezoneregion = 2
+		elseif MissionNum == 10 then destination = Config.Delivery.Delivery10BC namezone = "Delivery10BC" namezonenum = 10 namezoneregion = 2
 		end
 		
 	end
 	
-	MissionLivraisonLetsGo()
+	MissionDeliveryLetsGo()
 end
 
 -- Fonction active mission livraison
-function MissionLivraisonLetsGo()
+function MissionDeliveryLetsGo()
 	if Blips['delivery'] ~= nil then
 		RemoveBlip(Blips['delivery'])
 		Blips['delivery'] = nil
 	end
 	
-	if Blips['annulermission'] ~= nil then
-		RemoveBlip(Blips['annulermission'])
-		Blips['annulermission'] = nil
+	if Blips['cancelmission'] ~= nil then
+		RemoveBlip(Blips['cancelmission'])
+		Blips['cancelmission'] = nil
 	end
 	
 	Blips['delivery'] = AddBlipForCoord(destination.Pos.x,  destination.Pos.y,  destination.Pos.z)
@@ -647,25 +647,25 @@ function MissionLivraisonLetsGo()
 	AddTextComponentString(_U('blip_delivery'))
 	EndTextCommandSetBlipName(Blips['delivery'])
 	
-	Blips['annulermission'] = AddBlipForCoord(Config.Livraison.AnnulerMission.Pos.x,  Config.Livraison.AnnulerMission.Pos.y,  Config.Livraison.AnnulerMission.Pos.z)
+	Blips['cancelmission'] = AddBlipForCoord(Config.Delivery.CancelMission.Pos.x,  Config.Delivery.CancelMission.Pos.y,  Config.Delivery.CancelMission.Pos.z)
 	BeginTextCommandSetBlipName("STRING")
 	AddTextComponentString(_U('blip_goal'))
-	EndTextCommandSetBlipName(Blips['annulermission'])
+	EndTextCommandSetBlipName(Blips['cancelmission'])
 
 	if MissionRegion == 1 then -- Los santos
 		ESX.ShowNotification(_U('meet_ls'))
 	elseif MissionRegion == 2 then -- Blaine County
 		ESX.ShowNotification(_U('meet_bc'))
-	elseif MissionRegion == 0 then -- au cas ou
+	elseif MissionRegion == 0 then
 		ESX.ShowNotification(_U('meet_del'))
 	end
 
-	MissionLivraison = true
+	MissionDelivery = true
 end
 
---Fonction retour au depot
-function MissionLivraisonStopRetourDepot()
-	destination = Config.Livraison.RetourCamion
+-- Deposit return function
+function MissionDeliveryStopRetourDepot()
+	destination = Config.Delivery.ReturnTruck
 	
 	Blips['delivery'] = AddBlipForCoord(destination.Pos.x,  destination.Pos.y,  destination.Pos.z)
 	SetBlipRoute(Blips['delivery'], true)
@@ -673,23 +673,23 @@ function MissionLivraisonStopRetourDepot()
 	AddTextComponentString(_U('blip_depot'))
 	EndTextCommandSetBlipName(Blips['delivery'])
 	
-	if Blips['annulermission'] ~= nil then
-		RemoveBlip(Blips['annulermission'])
-		Blips['annulermission'] = nil
+	if Blips['cancelmission'] ~= nil then
+		RemoveBlip(Blips['cancelmission'])
+		Blips['cancelmission'] = nil
 	end
 
 	ESX.ShowNotification(_U('return_depot'))
 	
 	MissionRegion = 0
-	MissionLivraison = false
+	MissionDelivery = false
 	MissionNum = 0
-	MissionRetourCamion = true
+	MissionReturnTruck = true
 end
 
-function SavePlaqueVehicule()
-	plaquevehicule = GetVehicleNumberPlateText(GetVehiclePedIsIn(GetPlayerPed(-1), false))
+function SaveVehiclePlate()
+	vehicleplate = GetVehicleNumberPlateText(GetVehiclePedIsIn(GetPlayerPed(-1), false))
 end
 
-function VerifPlaqueVehiculeActuel()
-	plaquevehiculeactuel = GetVehicleNumberPlateText(GetVehiclePedIsIn(GetPlayerPed(-1), false))
+function VerifyCurrentVehiclePlate()
+	currentvehicleplate = GetVehicleNumberPlateText(GetVehiclePedIsIn(GetPlayerPed(-1), false))
 end
