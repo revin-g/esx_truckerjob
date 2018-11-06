@@ -5,17 +5,18 @@
 -- www.nobrain.org
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
-ESX = nil
+local Keys = {
+	["ESC"] = 322, ["F1"] = 288, ["F2"] = 289, ["F3"] = 170, ["F5"] = 166, ["F6"] = 167, ["F7"] = 168, ["F8"] = 169, ["F9"] = 56, ["F10"] = 57,
+	["~"] = 243, ["1"] = 157, ["2"] = 158, ["3"] = 160, ["4"] = 164, ["5"] = 165, ["6"] = 159, ["7"] = 161, ["8"] = 162, ["9"] = 163, ["-"] = 84, ["="] = 83, ["BACKSPACE"] = 177,
+	["TAB"] = 37, ["Q"] = 44, ["W"] = 32, ["E"] = 38, ["R"] = 45, ["T"] = 245, ["Y"] = 246, ["U"] = 303, ["P"] = 199, ["["] = 39, ["]"] = 40, ["ENTER"] = 18,
+	["CAPS"] = 137, ["A"] = 34, ["S"] = 8, ["D"] = 9, ["F"] = 23, ["G"] = 47, ["H"] = 74, ["K"] = 311, ["L"] = 182,
+	["LEFTSHIFT"] = 21, ["Z"] = 20, ["X"] = 73, ["C"] = 26, ["V"] = 0, ["B"] = 29, ["N"] = 249, ["M"] = 244, [","] = 82, ["."] = 81,
+	["LEFTCTRL"] = 36, ["LEFTALT"] = 19, ["SPACE"] = 22, ["RIGHTCTRL"] = 70,
+	["HOME"] = 213, ["PAGEUP"] = 10, ["PAGEDOWN"] = 11, ["DELETE"] = 178,
+	["LEFT"] = 174, ["RIGHT"] = 175, ["TOP"] = 27, ["DOWN"] = 173,
+	["NENTER"] = 201, ["N4"] = 108, ["N5"] = 60, ["N6"] = 107, ["N+"] = 96, ["N-"] = 97, ["N7"] = 117, ["N8"] = 61, ["N9"] = 118
+  }
 
-Citizen.CreateThread(function()
-	while ESX == nil do
-		TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
-		Citizen.Wait(0)
-	end
-end)
---------------------------------------------------------------------------------
--- DO NOT MODIFY
---------------------------------------------------------------------------------
 local namezone = "Delivery"
 local namezonenum = 0
 local namezoneregion = 0
@@ -28,27 +29,39 @@ local MissionReturnTruck = false
 local MissionNum = 0
 local MissionDelivery = false
 local isInService = false
-local PlayerData              = nil
-local GUI                     = {}
-GUI.Time                      = 0
+local PlayerData = {}
+local GUI = {}
 local hasAlreadyEnteredMarker = false
-local lastZone                = nil
-local Blips                   = {}
-
+local lastZone = nil
+local Blips = {}
 local vehicleplate = ""
 local currentvehicleplate = ""
-local CurrentAction           = nil
-local CurrentActionMsg        = ''
-local CurrentActionData       = {}
+local CurrentAction = nil
+local CurrentActionMsg = ''
+local CurrentActionData = {}
+
+GUI.Time = 0
+ESX = nil
+
+Citizen.CreateThread(function()
+	while ESX == nil do
+		TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
+		Citizen.Wait(0)
+	end
+
+	Citizen.Wait(5000)
+	PlayerData = ESX.GetPlayerData()
+end)
 --------------------------------------------------------------------------------
+
 RegisterNetEvent('esx:playerLoaded')
 AddEventHandler('esx:playerLoaded', function(xPlayer)
-    PlayerData = xPlayer
+  PlayerData = xPlayer
 end)
 
 RegisterNetEvent('esx:setJob')
 AddEventHandler('esx:setJob', function(job)
-	PlayerData.job = job
+  PlayerData.job = job
 end)
 
 -- MENUS
@@ -128,25 +141,17 @@ function MenuVehicleSpawner()
 end
 
 function IsATruck()
-	local isATruck = false
-	local playerPed = GetPlayerPed(-1)
 	for i=1, #Config.Trucks, 1 do
-		if IsVehicleModel(GetVehiclePedIsUsing(playerPed), Config.Trucks[i]) then
-			isATruck = true
-			break
+		if IsVehicleModel(GetVehiclePedIsUsing(GetPlayerPed(-1)), Config.Trucks[i]) then
+			return true
 		end
 	end
-	return isATruck
+
+	return false
 end
 
 function IsJobTrucker()
-	if PlayerData ~= nil then
-		local isJobTrucker = false
-		if PlayerData.job.name ~= nil and PlayerData.job.name == 'trucker' then
-			isJobTrucker = true
-		end
-		return isJobTrucker
-	end
+	return (PlayerData.job ~= nil and PlayerData.job.name == 'trucker')
 end
 
 AddEventHandler('esx_truckerjob:hasEnteredMarker', function(zone)
@@ -486,42 +491,37 @@ Citizen.CreateThread(function()
 	while true do
 		Wait(0)
 		
-		if MissionDelivery then
-			DrawMarker(destination.Type, destination.Pos.x, destination.Pos.y, destination.Pos.z, 0.0, 0.0, 0.0, 0, 0.0, 0.0, destination.Size.x, destination.Size.y, destination.Size.z, destination.Color.r, destination.Color.g, destination.Color.b, 100, false, true, 2, false, false, false, false)
-			DrawMarker(Config.Delivery.CancelMission.Type, Config.Delivery.CancelMission.Pos.x, Config.Delivery.CancelMission.Pos.y, Config.Delivery.CancelMission.Pos.z, 0.0, 0.0, 0.0, 0, 0.0, 0.0, Config.Delivery.CancelMission.Size.x, Config.Delivery.CancelMission.Size.y, Config.Delivery.CancelMission.Size.z, Config.Delivery.CancelMission.Color.r, Config.Delivery.CancelMission.Color.g, Config.Delivery.CancelMission.Color.b, 100, false, true, 2, false, false, false, false)
-		elseif MissionReturnTruck then
-			DrawMarker(destination.Type, destination.Pos.x, destination.Pos.y, destination.Pos.z, 0.0, 0.0, 0.0, 0, 0.0, 0.0, destination.Size.x, destination.Size.y, destination.Size.z, destination.Color.r, destination.Color.g, destination.Color.b, 100, false, true, 2, false, false, false, false)
-		end
+		if IsJobTrucker() then
+			local coords = GetEntityCoords(GetPlayerPed(-1))
 
-		local coords = GetEntityCoords(GetPlayerPed(-1))
-		
-		for k,v in pairs(Config.Zones) do
-
-			if isInService and (IsJobTrucker() and v.Type ~= -1 and GetDistanceBetweenCoords(coords, v.Pos.x, v.Pos.y, v.Pos.z, true) < Config.DrawDistance) then
-				DrawMarker(v.Type, v.Pos.x, v.Pos.y, v.Pos.z, 0.0, 0.0, 0.0, 0, 0.0, 0.0, v.Size.x, v.Size.y, v.Size.z, v.Color.r, v.Color.g, v.Color.b, 100, false, true, 2, false, false, false, false)
+			for k,v in pairs(Config.Zones) do
+				if isInService and (v.Type ~= -1 and GetDistanceBetweenCoords(coords, v.Pos.x, v.Pos.y, v.Pos.z, true) < Config.DrawDistance) then
+					DrawMarker(v.Type, v.Pos.x, v.Pos.y, v.Pos.z, 0.0, 0.0, 0.0, 0, 0.0, 0.0, v.Size.x, v.Size.y, v.Size.z, v.Color.r, v.Color.g, v.Color.b, 100, false, true, 2, false, false, false, false)
+				end
 			end
 
-		end
-
-		for k,v in pairs(Config.Cloakroom) do
-
-			if(IsJobTrucker() and v.Type ~= -1 and GetDistanceBetweenCoords(coords, v.Pos.x, v.Pos.y, v.Pos.z, true) < Config.DrawDistance) then
-				DrawMarker(v.Type, v.Pos.x, v.Pos.y, v.Pos.z, 0.0, 0.0, 0.0, 0, 0.0, 0.0, v.Size.x, v.Size.y, v.Size.z, v.Color.r, v.Color.g, v.Color.b, 100, false, true, 2, false, false, false, false)
+			for k,v in pairs(Config.Cloakroom) do
+				if (v.Type ~= -1 and GetDistanceBetweenCoords(coords, v.Pos.x, v.Pos.y, v.Pos.z, true) < Config.DrawDistance) then
+					DrawMarker(v.Type, v.Pos.x, v.Pos.y, v.Pos.z, 0.0, 0.0, 0.0, 0, 0.0, 0.0, v.Size.x, v.Size.y, v.Size.z, v.Color.r, v.Color.g, v.Color.b, 100, false, true, 2, false, false, false, false)
+				end
 			end
 
+			if MissionDelivery then
+				DrawMarker(destination.Type, destination.Pos.x, destination.Pos.y, destination.Pos.z, 0.0, 0.0, 0.0, 0, 0.0, 0.0, destination.Size.x, destination.Size.y, destination.Size.z, destination.Color.r, destination.Color.g, destination.Color.b, 100, false, true, 2, false, false, false, false)
+				DrawMarker(Config.Delivery.CancelMission.Type, Config.Delivery.CancelMission.Pos.x, Config.Delivery.CancelMission.Pos.y, Config.Delivery.CancelMission.Pos.z, 0.0, 0.0, 0.0, 0, 0.0, 0.0, Config.Delivery.CancelMission.Size.x, Config.Delivery.CancelMission.Size.y, Config.Delivery.CancelMission.Size.z, Config.Delivery.CancelMission.Color.r, Config.Delivery.CancelMission.Color.g, Config.Delivery.CancelMission.Color.b, 100, false, true, 2, false, false, false, false)
+			elseif MissionReturnTruck then
+				DrawMarker(destination.Type, destination.Pos.x, destination.Pos.y, destination.Pos.z, 0.0, 0.0, 0.0, 0, 0.0, 0.0, destination.Size.x, destination.Size.y, destination.Size.z, destination.Color.r, destination.Color.g, destination.Color.b, 100, false, true, 2, false, false, false, false)
+			end
 		end
-		
 	end
 end)
 
 -- Activate menu when player is inside marker
 Citizen.CreateThread(function()
 	while true do
-		
 		Wait(0)
 		
 		if IsJobTrucker() then
-
 			local coords      = GetEntityCoords(GetPlayerPed(-1))
 			local isInMarker  = false
 			local currentZone = nil
@@ -557,9 +557,7 @@ Citizen.CreateThread(function()
 				hasAlreadyEnteredMarker = false
 				TriggerEvent('esx_truckerjob:hasExitedMarker', lastZone)
 			end
-
 		end
-
 	end
 end)
 
@@ -567,7 +565,7 @@ end)
 Citizen.CreateThread(function()
 	local blip = AddBlipForCoord(Config.Cloakroom.CloakRoom.Pos.x, Config.Cloakroom.CloakRoom.Pos.y, Config.Cloakroom.CloakRoom.Pos.z)
   
-	SetBlipSprite (blip, 67)
+	SetBlipSprite (blip, 477)
 	SetBlipDisplay(blip, 4)
 	SetBlipScale  (blip, 1.2)
 	SetBlipColour (blip, 5)
