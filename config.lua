@@ -228,13 +228,4 @@ Config.Delivery = {
 			Type  = 1,
 			Paye = 0
 		},
-	
-	CancelMission = {
-			Pos   = {x = 162.0788, y = -3210.7067, z = 4.5},
-			Color = {r = 204, g = 204, b = 0},
-			Size  = {x = 5.0, y = 5.0, z = 3.0},
-			Color = {r = 204, g = 204, b = 0},
-			Type  = 1,
-			Paye = 0
-		},
 }
