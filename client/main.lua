@@ -119,21 +119,28 @@ function MenuVehicleSpawner()
 			elements = elements
 		},
 		function(data, menu)
-			ESX.Game.SpawnVehicle(data.current.value, Config.Zones.VehicleSpawnPoint.Pos, 270.0, function(vehicle)
-				platenum = math.random(10000, 99999)
-				SetVehicleNumberPlateText(vehicle, "WAL"..platenum)             
-				vehicleplate = "WAL"..platenum
-				deliveryvehicle = vehicle
-				if data.current.value == 'packer' then
-					ESX.Game.SpawnVehicle("trailers2", Config.Zones.VehicleSpawnPoint.Pos, 270.0, function(trailer)
-						deliverytrailer = trailer
-						AttachVehicleToTrailer(deliveryvehicle, trailer, 1.1)
-					end)
-				end				
-				--TaskWarpPedIntoVehicle(GetPlayerPed(-1), vehicle, -1)   
+			local overlap_vehicle = nil
+			overlap_vehicle = ESX.Game.GetVehiclesInArea(Config.Zones.VehicleSpawnPoint.Pos, 10)
 
-				MissionDeliverySelect()
-			end)
+			if #overlap_vehicle > 0 then
+				ESX.ShowNotification('blocked by other vehicle!')
+			else
+				ESX.Game.SpawnVehicle(data.current.value, Config.Zones.VehicleSpawnPoint.Pos, 270.0, function(vehicle)
+					platenum = math.random(10000, 99999)
+					SetVehicleNumberPlateText(vehicle, "WAL"..platenum)             
+					vehicleplate = "WAL"..platenum
+					deliveryvehicle = vehicle
+					if data.current.value == 'packer' then
+						ESX.Game.SpawnVehicle("trailers2", Config.Zones.VehicleSpawnPoint.Pos, 270.0, function(trailer)
+							deliverytrailer = trailer
+							AttachVehicleToTrailer(deliveryvehicle, trailer, 1.1)
+						end)
+					end				
+					--TaskWarpPedIntoVehicle(GetPlayerPed(-1), vehicle, -1)   
+	
+					MissionDeliverySelect()
+				end)
+			end
 
 			ESX.UI.Menu.CloseAll()
 		end,
