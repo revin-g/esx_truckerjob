@@ -22,6 +22,7 @@ Locales['en'] = {
 	['meet_bc'] = 'go to the delivery point in Blaine County',
 	['meet_del'] = 'go to the delivery point',
 	['return_depot'] = 'return to the depot.',
+	['return'] = 'press ~INPUT_PICKUP~ to complete.',
 	['blip_job'] = 'Trucker',
 	['blip_delivery'] = 'Trucker Delivery',
 	['blip_cancel'] = 'Trucker Cancel Point',

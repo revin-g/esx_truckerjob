@@ -32,6 +32,7 @@ local MissionNum = 0
 local MissionFindVehicle = false
 local MissionDelivery = false
 local IsBusy = false
+local IsReturnTruckState = false
 local PlayerData = {}
 local GUI = {}
 local hasAlreadyEnteredMarker = false
@@ -121,7 +122,6 @@ function MenuVehicleSpawner()
 			ESX.Game.SpawnVehicle(data.current.value, Config.Zones.VehicleSpawnPoint.Pos, 270.0, function(vehicle)
 				platenum = math.random(10000, 99999)
 				SetVehicleNumberPlateText(vehicle, "WAL"..platenum)             
-                MissionDeliverySelect()
 				vehicleplate = "WAL"..platenum
 				deliveryvehicle = vehicle
 				if data.current.value == 'packer' then
@@ -131,6 +131,8 @@ function MenuVehicleSpawner()
 					end)
 				end				
 				--TaskWarpPedIntoVehicle(GetPlayerPed(-1), vehicle, -1)   
+
+				MissionDeliverySelect()
 			end)
 
 			ESX.UI.Menu.CloseAll()
@@ -143,10 +145,12 @@ end
 
 function OpenMobileTruckerActionsMenu()
 	local elements = {}
-	if MissionDelivery or MissionFindVehicle then
-		table.insert(elements, {label = _U('mobile_action_cancel_job'), value = 'cancelmission'})
-	else
-		table.insert(elements, {label = _U('mobile_action_select_job'), value = 'selectjob'})
+	if not MissionReturnTruck then
+		if MissionDelivery or MissionFindVehicle then
+			table.insert(elements, {label = _U('mobile_action_cancel_job'), value = 'cancelmission'})
+		else
+			table.insert(elements, {label = _U('mobile_action_select_job'), value = 'selectjob'})
+		end
 	end
 
 	ESX.UI.Menu.CloseAll()
@@ -183,6 +187,7 @@ function IsJobTrucker()
 end
 
 AddEventHandler('esx_truckerjob:hasEnteredMarker', function(zone)
+	ESX.UI.Menu.CloseAll()
 
 	local playerPed = GetPlayerPed(-1)
 
@@ -207,11 +212,6 @@ AddEventHandler('esx_truckerjob:hasEnteredMarker', function(zone)
 				VerifyCurrentVehiclePlate()
 				
 				if vehicleplate == currentvehicleplate then
-					if Blips['delivery'] ~= nil then
-						RemoveBlip(Blips['delivery'])
-						Blips['delivery'] = nil
-					end
-
 					CurrentAction     = 'delivery'
                     CurrentActionMsg  = _U('delivery')
 				else
@@ -231,7 +231,8 @@ AddEventHandler('esx_truckerjob:hasEnteredMarker', function(zone)
 				VerifyCurrentVehiclePlate()
 
 				if vehicleplate == currentvehicleplate then
-                    CurrentAction     = 'returntruck'
+					CurrentAction     = 'returntruck'
+					CurrentActionMsg  = _U('return')
 				else
                     CurrentAction     = 'returntruckcancelmission'
                     CurrentActionMsg  = _U('not_your_truck')
@@ -282,6 +283,7 @@ function returntruck_true()
 	end
 	
 	MissionReturnTruck = false
+	IsReturnTruckState = false
 	deliverynumber = 0
 	MissionRegion = 0
 	
@@ -305,6 +307,7 @@ function returnlosttruck_true()
 	end
 
 	MissionReturnTruck = false
+	IsReturnTruckState = false
 	deliverynumber = 0
 	MissionRegion = 0
 	
@@ -373,7 +376,9 @@ function givepayroll()
     -- ESX.Game.DeleteVehicle(deliverytrailer)
     ESX.Game.DeleteVehicle(deliveryvehicle)
     -- DeleteEntity(deliverytrailer)
-    DeleteEntity(deliveryvehicle)
+	DeleteEntity(deliveryvehicle)
+	-- deliverytrailer = nil
+	deliveryvehicle = nil
 
 	local amount = deliveryTotalPaid-moneywithdrawn
 	
@@ -416,7 +421,6 @@ function givepayroll()
 end
 
 function givemoveyinthetruck()
-	ped = GetPlayerPed(-1)
 	moneywithdrawn = Config.TruckPrice
 	
 	-- give pay
@@ -452,13 +456,23 @@ Citizen.CreateThread(function()
         	AddTextComponentString(CurrentActionMsg)
        		DisplayHelpTextFromStringLabel(0, 0, 1, -1)
 
-            if IsControlJustReleased(0, 38) and IsJobTrucker() then
+            if IsControlJustReleased(0, Keys['E']) and IsJobTrucker() then
 
-                if CurrentAction == 'delivery' then
+				if CurrentAction == 'delivery' then
+					if Blips['delivery'] ~= nil then
+						RemoveBlip(Blips['delivery'])
+						Blips['delivery'] = nil
+					end
+
                     newdestination()
                 end
 
-                if CurrentAction == 'returntruck' then
+				if CurrentAction == 'returntruck' then
+					if Blips['delivery'] ~= nil then
+						RemoveBlip(Blips['delivery'])
+						Blips['delivery'] = nil
+					end
+
                     returntruck_true()
                 end
 
@@ -510,6 +524,28 @@ Citizen.CreateThread(function()
 			elseif MissionReturnTruck then
 				DrawMarker(destination.Type, destination.Pos.x, destination.Pos.y, destination.Pos.z, 0.0, 0.0, 0.0, 0, 0.0, 0.0, destination.Size.x, destination.Size.y, destination.Size.z, destination.Color.r, destination.Color.g, destination.Color.b, 100, false, true, 2, false, false, false, false)
 			end
+
+			if MissionFindVehicle or MissionDelivery or MissionReturnTruck then
+				if IsPedSittingInAnyVehicle(GetPlayerPed(-1)) and IsATruck() then
+					VerifyCurrentVehiclePlate()
+
+					if MissionFindVehicle and vehicleplate == currentvehicleplate then
+						MissionFindVehicle = false
+
+						if IsReturnTruckState then
+							MissionDeliveryStopReturnDepot()
+						else
+							MissionDeliveryLetsGo()
+						end
+					end
+				else
+					if MissionDelivery or MissionReturnTruck then
+						MissionDelivery = false
+						MissionReturnTruck = false
+						MissionDeliveryFindVehicle()
+					end
+				end
+			end
 		end
 	end
 end)
@@ -554,22 +590,6 @@ Citizen.CreateThread(function()
 			if not isInMarker and hasAlreadyEnteredMarker then
 				hasAlreadyEnteredMarker = false
 				TriggerEvent('esx_truckerjob:hasExitedMarker', lastZone)
-			end
-
-			if MissionFindVehicle or MissionDelivery then
-				if IsPedSittingInAnyVehicle(GetPlayerPed(-1)) and IsATruck() then
-					VerifyCurrentVehiclePlate()
-
-					if MissionFindVehicle and vehicleplate == currentvehicleplate then
-						MissionFindVehicle = false
-						MissionDeliveryLetsGo()
-					end
-				else
-					if MissionDelivery then
-						MissionDelivery = false
-						MissionDeliveryFindVehicle()
-					end
-				end
 			end
 		end
 	end
@@ -643,9 +663,16 @@ function MissionDeliverySelect()
 end
 
 function MissionDeliveryFindVehicle()
-	vehicle_pos = Config.Zones.VehicleSpawnPoint.Pos
+	if Blips['vehicle'] ~= nil then
+		RemoveBlip(Blips['vehicle'])
+		Blips['vehicle'] = nil
+	end
 
-	-- Blips['vehicle'] = AddBlipForCoord(vehicle_pos.x,  vehicle_pos.y,  vehicle_pos.z)
+	if Blips['delivery'] ~= nil then
+		RemoveBlip(Blips['delivery'])
+		Blips['delivery'] = nil
+	end
+	
 	Blips['vehicle'] = AddBlipForEntity(deliveryvehicle)
 	SetBlipRoute(Blips['vehicle'], true)
 	SetBlipRouteColour(Blips['vehicle'], 2) 
@@ -689,6 +716,16 @@ end
 
 -- Deposit return function
 function MissionDeliveryStopReturnDepot()
+	if Blips['vehicle'] ~= nil then
+		RemoveBlip(Blips['vehicle'])
+		Blips['vehicle'] = nil
+	end
+
+	if Blips['delivery'] ~= nil then
+		RemoveBlip(Blips['delivery'])
+		Blips['delivery'] = nil
+	end
+
 	destination = Config.Delivery.ReturnTruck
 	
 	Blips['delivery'] = AddBlipForCoord(destination.Pos.x,  destination.Pos.y,  destination.Pos.z)
@@ -703,6 +740,7 @@ function MissionDeliveryStopReturnDepot()
 	MissionDelivery = false
 	MissionNum = 0
 	MissionReturnTruck = true
+	IsReturnTruckState = true
 end
 
 function SaveVehiclePlate()
