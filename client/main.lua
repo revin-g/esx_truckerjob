@@ -43,6 +43,8 @@ local currentvehicleplate = ""
 local CurrentAction = nil
 local CurrentActionMsg = ''
 local CurrentActionData = {}
+local spawn_point = nil
+local spawn_heading = nil
 
 GUI.Time = 0
 ESX = nil
@@ -119,21 +121,14 @@ function MenuVanMissionSpawner()
 			elements = elements
 		},
 		function(data, menu)
-			local overlap_vehicle = nil
-			overlap_vehicle = ESX.Game.GetVehiclesInArea(Config.Zones.VehicleSpawnPoint.Pos, 10)
+			ESX.Game.SpawnVehicle(data.current.value, spawn_point, spawn_heading, function(vehicle)
+				platenum = math.random(10000, 99999)
+				SetVehicleNumberPlateText(vehicle, "WAL"..platenum)             
+				vehicleplate = "WAL"..platenum
+				deliveryvehicle = vehicle 
 
-			if #overlap_vehicle > 0 then
-				ESX.ShowNotification('blocked by other vehicle!')
-			else
-				ESX.Game.SpawnVehicle(data.current.value, Config.Zones.VehicleSpawnPoint.Pos, 270.0, function(vehicle)
-					platenum = math.random(10000, 99999)
-					SetVehicleNumberPlateText(vehicle, "WAL"..platenum)             
-					vehicleplate = "WAL"..platenum
-					deliveryvehicle = vehicle 
-	
-					MissionDeliverySelect()
-				end)
-			end
+				MissionDeliverySelect()
+			end)
 
 			ESX.UI.Menu.CloseAll()
 		end,
@@ -158,21 +153,14 @@ function MenuTruckMissionSpawner()
 			elements = elements
 		},
 		function(data, menu)
-			local overlap_vehicle = nil
-			overlap_vehicle = ESX.Game.GetVehiclesInArea(Config.Zones.VehicleSpawnPoint.Pos, 10)
+			ESX.Game.SpawnVehicle(data.current.value, spawn_point, spawn_heading, function(vehicle)
+				platenum = math.random(10000, 99999)
+				SetVehicleNumberPlateText(vehicle, "WAL"..platenum)             
+				vehicleplate = "WAL"..platenum
+				deliveryvehicle = vehicle
 
-			if #overlap_vehicle > 0 then
-				ESX.ShowNotification('blocked by other vehicle!')
-			else
-				ESX.Game.SpawnVehicle(data.current.value, Config.Zones.VehicleSpawnPoint.Pos, 270.0, function(vehicle)
-					platenum = math.random(10000, 99999)
-					SetVehicleNumberPlateText(vehicle, "WAL"..platenum)             
-					vehicleplate = "WAL"..platenum
-					deliveryvehicle = vehicle
-	
-					MissionDeliverySelect()
-				end)
-			end
+				MissionDeliverySelect()
+			end)
 
 			ESX.UI.Menu.CloseAll()
 		end,
@@ -197,26 +185,21 @@ function MenuTractorTruckMissionSpawner()
 			elements = elements
 		},
 		function(data, menu)
-			local overlap_vehicle = nil
-			overlap_vehicle = ESX.Game.GetVehiclesInArea(Config.Zones.VehicleSpawnPoint.Pos, 10)
+			GetSaveSpawnPoint()
 
-			if #overlap_vehicle > 0 then
-				ESX.ShowNotification('blocked by other vehicle!')
-			else
-				ESX.Game.SpawnVehicle(data.current.value, Config.Zones.VehicleSpawnPoint.Pos, 270.0, function(vehicle)
-					platenum = math.random(10000, 99999)
-					SetVehicleNumberPlateText(vehicle, "WAL"..platenum)             
-					vehicleplate = "WAL"..platenum
-					deliveryvehicle = vehicle
+			ESX.Game.SpawnVehicle(data.current.value, spawn_point, spawn_heading, function(vehicle)
+				platenum = math.random(10000, 99999)
+				SetVehicleNumberPlateText(vehicle, "WAL"..platenum)             
+				vehicleplate = "WAL"..platenum
+				deliveryvehicle = vehicle
 
-					ESX.Game.SpawnVehicle("trailers2", Config.Zones.VehicleSpawnPoint.Pos, 270.0, function(trailer)
-						deliverytrailer = trailer
-						AttachVehicleToTrailer(deliveryvehicle, trailer, 1.1)
-					end)
-	
-					MissionDeliverySelect()
+				ESX.Game.SpawnVehicle("trailers2", spawn_point, spawn_heading, function(trailer)
+					deliverytrailer = trailer
+					AttachVehicleToTrailer(deliveryvehicle, trailer, 1.1)
 				end)
-			end
+
+				MissionDeliverySelect()
+			end)
 
 			ESX.UI.Menu.CloseAll()
 		end,
@@ -245,6 +228,7 @@ function OpenMobileTruckerActionsMenu()
 		if IsBusy then return end
 
 		if data.current.value == 'selectjob' then
+			GetSaveSpawnPoint()
 			MenuJobType()
 		elseif data.current.value == 'cancelmission' then
 			returntruckcancelmission_true()
@@ -875,4 +859,23 @@ end
 
 function VerifyCurrentVehiclePlate()
 	currentvehicleplate = GetVehicleNumberPlateText(GetVehiclePedIsIn(GetPlayerPed(-1), false))
+end
+
+function GetSaveSpawnPoint()
+	local overlap_vehicle = nil
+
+	overlap_vehicle = ESX.Game.GetVehiclesInArea(Config.Zones.VehiclePrimarySpawnPoint.Pos, 15)
+	if #overlap_vehicle > 0 then
+		overlap_vehicle = ESX.Game.GetVehiclesInArea(Config.Zones.VehicleSecondarySpawnPoint.Pos, 10)
+
+		if #overlap_vehicle > 0 then
+			ESX.ShowNotification('spawn area blocked by other vehicle!')
+		else
+			spawn_point = Config.Zones.VehicleSecondarySpawnPoint.Pos
+			spawn_heading = Config.Zones.VehicleSecondarySpawnPoint.Dir
+		end
+	else
+		spawn_point = Config.Zones.VehiclePrimarySpawnPoint.Pos
+		spawn_heading = Config.Zones.VehiclePrimarySpawnPoint.Dir
+	end
 end
