@@ -107,8 +107,8 @@ end
 function MenuVehicleSpawner()
 	local elements = {}
 
-	for i=1, #Config.Trucks, 1 do
-		table.insert(elements, {label = GetLabelText(GetDisplayNameFromVehicleModel(Config.Trucks[i])), value = Config.Trucks[i]})
+	for i=1, #Config.Vans, 1 do
+		table.insert(elements, {label = GetLabelText(GetDisplayNameFromVehicleModel(Config.Vans[i])), value = Config.Vans[i]})
 	end
 
 	ESX.UI.Menu.Open(
@@ -180,8 +180,8 @@ function OpenMobileTruckerActionsMenu()
 end
 
 function IsATruck()
-	for i=1, #Config.Trucks, 1 do
-		if IsVehicleModel(GetVehiclePedIsUsing(GetPlayerPed(-1)), Config.Trucks[i]) then
+	for i=1, #Config.Vans, 1 do
+		if IsVehicleModel(GetVehiclePedIsUsing(GetPlayerPed(-1)), Config.Vans[i]) then
 			return true
 		end
 	end
@@ -428,7 +428,7 @@ function givepayroll()
 end
 
 function givemoveyinthetruck()
-	moneywithdrawn = Config.TruckPrice
+	moneywithdrawn = Config.VehiclePrice
 	
 	-- give pay
 	local amount = deliveryTotalPaid-moneywithdrawn
@@ -633,8 +633,9 @@ function MissionDeliverySelect()
 	
 	if MissionRegion == 1 then -- Los santos
             TriggerServerEvent('esx:clientLog', "MissionDeliverySelect 2")
-		MissionNum = math.random(1, 10)
+		-- MissionNum = math.random(1, 10)
 	
+		MissionNum = 1
 		if MissionNum == 1 then destination = Config.Delivery.Delivery1LS namezone = "Delivery1LS" namezonenum = 1 namezoneregion = 1
 		elseif MissionNum == 2 then destination = Config.Delivery.Delivery2LS namezone = "Delivery2LS" namezonenum = 2 namezoneregion = 1
 		elseif MissionNum == 3 then destination = Config.Delivery.Delivery3LS namezone = "Delivery3LS" namezonenum = 3 namezoneregion = 1
