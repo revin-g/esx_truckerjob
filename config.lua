@@ -26,7 +26,7 @@ Config.TractorTrucks = {
 	"phantom",
 	"packer",
 	"hauler",
-	"Barracks2" -- military
+	"barracks2" -- military
 }
 
 Config.Cloakroom = {

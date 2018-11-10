@@ -104,7 +104,7 @@ function MenuCloakRoom()
 	)
 end
 
-function MenuVehicleSpawner()
+function MenuVanMissionSpawner()
 	local elements = {}
 
 	for i=1, #Config.Vans, 1 do
@@ -129,14 +129,90 @@ function MenuVehicleSpawner()
 					platenum = math.random(10000, 99999)
 					SetVehicleNumberPlateText(vehicle, "WAL"..platenum)             
 					vehicleplate = "WAL"..platenum
+					deliveryvehicle = vehicle 
+	
+					MissionDeliverySelect()
+				end)
+			end
+
+			ESX.UI.Menu.CloseAll()
+		end,
+		function(data, menu)
+			menu.close()
+		end
+	)
+end
+
+function MenuTruckMissionSpawner()
+	local elements = {}
+
+	for i=1, #Config.Trucks, 1 do
+		table.insert(elements, {label = GetLabelText(GetDisplayNameFromVehicleModel(Config.Trucks[i])), value = Config.Trucks[i]})
+	end
+
+	ESX.UI.Menu.Open(
+		'default', GetCurrentResourceName(), 'vehiclespawner',
+		{
+			title    = _U('vehiclespawner'),
+			align    = 'top-left',
+			elements = elements
+		},
+		function(data, menu)
+			local overlap_vehicle = nil
+			overlap_vehicle = ESX.Game.GetVehiclesInArea(Config.Zones.VehicleSpawnPoint.Pos, 10)
+
+			if #overlap_vehicle > 0 then
+				ESX.ShowNotification('blocked by other vehicle!')
+			else
+				ESX.Game.SpawnVehicle(data.current.value, Config.Zones.VehicleSpawnPoint.Pos, 270.0, function(vehicle)
+					platenum = math.random(10000, 99999)
+					SetVehicleNumberPlateText(vehicle, "WAL"..platenum)             
+					vehicleplate = "WAL"..platenum
 					deliveryvehicle = vehicle
-					if data.current.value == 'packer' then
-						ESX.Game.SpawnVehicle("trailers2", Config.Zones.VehicleSpawnPoint.Pos, 270.0, function(trailer)
-							deliverytrailer = trailer
-							AttachVehicleToTrailer(deliveryvehicle, trailer, 1.1)
-						end)
-					end				
-					--TaskWarpPedIntoVehicle(GetPlayerPed(-1), vehicle, -1)   
+	
+					MissionDeliverySelect()
+				end)
+			end
+
+			ESX.UI.Menu.CloseAll()
+		end,
+		function(data, menu)
+			menu.close()
+		end
+	)
+end
+
+function MenuTractorTruckMissionSpawner()
+	local elements = {}
+
+	for i=1, #Config.TractorTrucks, 1 do
+		table.insert(elements, {label = GetLabelText(GetDisplayNameFromVehicleModel(Config.TractorTrucks[i])), value = Config.TractorTrucks[i]})
+	end
+
+	ESX.UI.Menu.Open(
+		'default', GetCurrentResourceName(), 'vehiclespawner',
+		{
+			title    = _U('vehiclespawner'),
+			align    = 'top-left',
+			elements = elements
+		},
+		function(data, menu)
+			local overlap_vehicle = nil
+			overlap_vehicle = ESX.Game.GetVehiclesInArea(Config.Zones.VehicleSpawnPoint.Pos, 10)
+
+			if #overlap_vehicle > 0 then
+				ESX.ShowNotification('blocked by other vehicle!')
+			else
+				ESX.Game.SpawnVehicle(data.current.value, Config.Zones.VehicleSpawnPoint.Pos, 270.0, function(vehicle)
+					platenum = math.random(10000, 99999)
+					SetVehicleNumberPlateText(vehicle, "WAL"..platenum)             
+					vehicleplate = "WAL"..platenum
+					deliveryvehicle = vehicle
+
+					ESX.Game.SpawnVehicle("trailers2", Config.Zones.VehicleSpawnPoint.Pos, 270.0, function(trailer)
+						deliverytrailer = trailer
+						AttachVehicleToTrailer(deliveryvehicle, trailer, 1.1)
+					end)
 	
 					MissionDeliverySelect()
 				end)
@@ -169,7 +245,7 @@ function OpenMobileTruckerActionsMenu()
 		if IsBusy then return end
 
 		if data.current.value == 'selectjob' then
-			MenuVehicleSpawner()
+			MenuJobType()
 		elseif data.current.value == 'cancelmission' then
 			returntruckcancelmission_true()
 			menu.close()
@@ -179,9 +255,47 @@ function OpenMobileTruckerActionsMenu()
 	end)
 end
 
-function IsATruck()
+function MenuJobType()
+	local elements = {}
+	table.insert(elements, {label = 'Vans', value = 'missionvans'})
+	table.insert(elements, {label = 'Trucks', value = 'missiontrucks'})
+	table.insert(elements, {label = 'Trailers', value = 'missiontrailers'})
+
+	ESX.UI.Menu.CloseAll()
+	ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'job_type_actions', {
+		title    = 'Select Job Type',
+		align    = 'top-left',
+		elements = elements
+	}, function(data, menu)
+		if IsBusy then return end
+
+		if data.current.value == 'missionvans' then
+			MenuVanMissionSpawner()
+		elseif data.current.value == 'missiontrucks' then
+			MenuTruckMissionSpawner()
+		elseif data.current.value == 'missiontrailers' then
+			MenuTractorTruckMissionSpawner()
+		end
+	end, function(data, menu)
+		menu.close()
+	end)
+end
+
+function IsDeliveryVehicle()
 	for i=1, #Config.Vans, 1 do
 		if IsVehicleModel(GetVehiclePedIsUsing(GetPlayerPed(-1)), Config.Vans[i]) then
+			return true
+		end
+	end
+
+	for i=1, #Config.Trucks, 1 do
+		if IsVehicleModel(GetVehiclePedIsUsing(GetPlayerPed(-1)), Config.Trucks[i]) then
+			return true
+		end
+	end
+
+	for i=1, #Config.TractorTrucks, 1 do
+		if IsVehicleModel(GetVehiclePedIsUsing(GetPlayerPed(-1)), Config.TractorTrucks[i]) then
 			return true
 		end
 	end
@@ -208,14 +322,14 @@ AddEventHandler('esx_truckerjob:hasEnteredMarker', function(zone)
 				CurrentAction = 'hint'
                 CurrentActionMsg  = _U('already_have_truck')
 			else
-				MenuVehicleSpawner()
+				MenuJobType()
 			end
 		end
 	end
 
 	if zone == namezone then
 		if MissionDelivery and MissionNum == namezonenum and MissionRegion == namezoneregion and IsJobTrucker() then
-			if IsPedSittingInAnyVehicle(playerPed) and IsATruck() then
+			if IsPedSittingInAnyVehicle(playerPed) and IsDeliveryVehicle() then
 				VerifyCurrentVehiclePlate()
 				
 				if vehicleplate == currentvehicleplate then
@@ -234,7 +348,7 @@ AddEventHandler('esx_truckerjob:hasEnteredMarker', function(zone)
 
 	if zone == 'ReturnTruck' then
 		if MissionReturnTruck and IsJobTrucker() then
-			if IsPedSittingInAnyVehicle(playerPed) and IsATruck() then
+			if IsPedSittingInAnyVehicle(playerPed) and IsDeliveryVehicle() then
 				VerifyCurrentVehiclePlate()
 
 				if vehicleplate == currentvehicleplate then
@@ -533,7 +647,7 @@ Citizen.CreateThread(function()
 			end
 
 			if MissionFindVehicle or MissionDelivery or MissionReturnTruck then
-				if IsPedSittingInAnyVehicle(GetPlayerPed(-1)) and IsATruck() then
+				if IsPedSittingInAnyVehicle(GetPlayerPed(-1)) and IsDeliveryVehicle() then
 					VerifyCurrentVehiclePlate()
 
 					if MissionFindVehicle and vehicleplate == currentvehicleplate then
@@ -633,9 +747,13 @@ function MissionDeliverySelect()
 	
 	if MissionRegion == 1 then -- Los santos
             TriggerServerEvent('esx:clientLog', "MissionDeliverySelect 2")
-		-- MissionNum = math.random(1, 10)
+		MissionNum = math.random(1, 10)
 	
-		MissionNum = 1
+		-- MissionNum = 1
+		-- destination = Config.Delivery.DeliveryTestLS
+		-- namezone = "DeliveryTestLS"
+		-- namezonenum = 1
+		-- namezoneregion = 1
 		if MissionNum == 1 then destination = Config.Delivery.Delivery1LS namezone = "Delivery1LS" namezonenum = 1 namezoneregion = 1
 		elseif MissionNum == 2 then destination = Config.Delivery.Delivery2LS namezone = "Delivery2LS" namezonenum = 2 namezoneregion = 1
 		elseif MissionNum == 3 then destination = Config.Delivery.Delivery3LS namezone = "Delivery3LS" namezonenum = 3 namezoneregion = 1
