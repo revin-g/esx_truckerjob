@@ -362,7 +362,7 @@ function MenuVanMissionSpawner(selected_company_name)
 			elements = elements
 		},
 		function(data, menu)
-			local spawn_point = GetSafeSpawnPoint(Config.Companies[selected_company_name].Markers, 'S')
+			local spawn_point = GetSafePoint(Config.Companies[selected_company_name].Markers, 'S')
 
 			if spawn_point then
 				ESX.Game.SpawnVehicle(data.current.value, spawn_point.coord, spawn_point.heading, function(vehicle)
@@ -374,6 +374,8 @@ function MenuVanMissionSpawner(selected_company_name)
 
 					MissionDeliverySelect()
 				end)
+			else
+				ESX.ShowNotification('spawn area blocked by other vehicle!')
 			end
 
 			ESX.UI.Menu.CloseAll()
@@ -399,7 +401,7 @@ function MenuTruckMissionSpawner(selected_company_name)
 			elements = elements
 		},
 		function(data, menu)
-			local spawn_point = GetSafeSpawnPoint(Config.Companies[selected_company_name].Markers)
+			local spawn_point = GetSafePoint(Config.Companies[selected_company_name].Markers)
 
 			if spawn_point then
 				ESX.Game.SpawnVehicle(data.current.value, spawn_point.coord, spawn_point.heading, function(vehicle)
@@ -411,6 +413,8 @@ function MenuTruckMissionSpawner(selected_company_name)
 
 					MissionDeliverySelect()
 				end)
+			else
+				ESX.ShowNotification('spawn area blocked by other vehicle!')
 			end
 
 			ESX.UI.Menu.CloseAll()
@@ -434,12 +438,22 @@ function MenuTractorTruckMissionSpawner(selected_company_name)
 				local delivery_company = Config.Companies[delivery_company_name]
 				local delivery_truck = Config.TractorTrucks[math.random(1, #Config.TractorTrucks)]
 				local available_trailer_types = ''
+				local available_delivery = false
 
+				-- check for available delivery size L
+				for j = 1, #delivery_company.Markers, 1 do
+					if string.find(delivery_company.Markers[j].Type, 'L') then
+						available_delivery = true
+						break
+					end
+				end
+
+				-- check for matching cargo type
 				for type in string.gmatch(delivery_company.Type, "[" .. selected_company.Type .. "]") do
 					available_trailer_types = available_trailer_types .. type
 				end
 		
-				if available_trailer_types ~= '' then
+				if available_delivery and available_trailer_types ~= '' then
 					trailer_type_index = math.random(1, #available_trailer_types)
 					trailer_type = string.sub(available_trailer_types, trailer_type_index, trailer_type_index)
 
@@ -448,13 +462,9 @@ function MenuTractorTruckMissionSpawner(selected_company_name)
 						delivery_truck = 'packer'
 					end
 
-					local travel_distance = CalculateTravelDistanceBetweenPoints(
-						selected_company.Markers[1].Coords.x,
-						selected_company.Markers[1].Coords.y,
-						selected_company.Markers[1].Coords.z,
-						delivery_company.Markers[1].Coords.x,
-						delivery_company.Markers[1].Coords.y,
-						delivery_company.Markers[1].Coords.z
+					local travel_distance = SimpleCalculateTravelDistanceBetweenPoints(
+						selected_company.Markers[1].Coords,
+						delivery_company.Markers[1].Coords
 					)
 
 					table.insert(elements, {
@@ -475,6 +485,7 @@ function MenuTractorTruckMissionSpawner(selected_company_name)
 			end
 		end
 
+		-- this just placeholder while fetching data from server
 		ESX.UI.Menu.Open(
 			'default', GetCurrentResourceName(), 'dummy',
 			{
@@ -507,9 +518,9 @@ function MenuTractorTruckMissionSpawner(selected_company_name)
 			local trailer_type = data.current.value.trailer_type
 			
 			destination = data.current.value.company.destination
-			destination['Pos'] = destination.Markers[math.random(1, #destination.Markers)].Coords
+			destination['Pos'] = GetSafePoint(destination.Markers, false).coord
 
-			local spawn_point = GetSafeSpawnPoint(origin.Markers)
+			local spawn_point = GetSafePoint(origin.Markers)
 			if spawn_point then
 				ESX.Game.SpawnVehicle(truck, spawn_point.coord, spawn_point.heading, function(vehicle)
 					platenum = math.random(10000, 99999)
@@ -524,6 +535,8 @@ function MenuTractorTruckMissionSpawner(selected_company_name)
 
 					MissionDeliveryFindVehicle()
 				end)
+			else
+				ESX.ShowNotification('spawn area blocked by other vehicle!')
 			end
 
 			ESX.UI.Menu.CloseAll()
@@ -565,7 +578,7 @@ function MenuCompanySelect()
 	local sorted_companies = {}
 
 	for company_name, company_values in pairs(Config.Companies) do
-		local coords = company_values.Markers[1].Coords
+		local coords = company_values.CloakRoom or company_values.Markers[1].Coords
 
 		if IsPlayerInArea({ coords = coords, size = Config.CompanyRange }) then
 			is_empty = false
@@ -1059,18 +1072,32 @@ function GetTrailerByType(type)
 	return trailers[math.random(1, #trailers)]
 end
 
-function GetSafeSpawnPoint(markers, type)
+function GetSafePoint(markers, for_spawn, type)
+	local for_spawn = for_spawn or true
 	local type = type or 'L'
 	local overlap_vehicle = nil
 	local safe_coord = nil
 	local safe_heading = nil
 
-	for i = 1, #markers do
-		local marker = markers[i]
-		
-		if type == 'S' or string.find(marker.Type, type) then
-			overlap_vehicle = ESX.Game.GetVehiclesInArea(marker.Coords, 15)
-			if #overlap_vehicle == 0 then
+	if for_spawn then
+		for i = 1, #markers do
+			local marker = markers[i]
+			
+			if type == 'S' or string.find(marker.Type, type) then
+				overlap_vehicle = ESX.Game.GetVehiclesInArea(marker.Coords, 15)
+				if #overlap_vehicle == 0 then
+					safe_coord = marker.Coords
+					safe_heading = marker.Heading
+
+					break
+				end
+			end
+		end
+	else
+		for i = 1, #markers do
+			local marker = markers[math.random(1, #markers)]
+
+			if type == 'S' or string.find(marker.Type, type) then
 				safe_coord = marker.Coords
 				safe_heading = marker.Heading
 
@@ -1085,14 +1112,24 @@ function GetSafeSpawnPoint(markers, type)
 			heading = safe_heading
 		}
 	else
-		ESX.ShowNotification('spawn area blocked by other vehicle!')
-
 		return nil
 	end
 end
 
 function SimpleGetDistanceFromPlayer(coords)
-	return GetDistanceBetweenCoords(GetEntityCoords(GetPlayerPed(-1)), coords.x, coords.y, coords.z, true)
+	return SimpleCalculateTravelDistanceBetweenPoints(GetEntityCoords(GetPlayerPed(-1)), coords)
+end
+
+function SimpleCalculateTravelDistanceBetweenPoints(coords_a, coords_b)
+	return GetDistanceBetweenCoords(
+		coords_a.x,
+		coords_a.y,
+		coords_a.z,
+		coords_b.x,
+		coords_b.y,
+		coords_b.z,
+		true
+	)
 end
 
 function SimpleDrawMarker(params)
