@@ -225,8 +225,8 @@ Citizen.CreateThread(function()
 					SimpleDrawMarker({
 						coords = values.CloakRoom,
 						size = {
-							x = 2.0,
-							y = 2.0,
+							x = 1.0,
+							y = 1.0,
 							z = 1.0
 						}
 					})

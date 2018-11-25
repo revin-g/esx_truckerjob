@@ -67,7 +67,7 @@ Config.Companies = {
 	},
 	['Los Santos Pier 400'] = {
 		Type = 'NCLTVM',
-		CloakRoom = { x = -53.1, y = -2525.1, z = 11.5 },
+		CloakRoom = { x = -53.1, y = -2525.1, z = 6.4 },
 		Markers = {
 			{
 				Type = 'OL',
@@ -180,6 +180,10 @@ Config.Companies = {
 		Type = 'NTMMM',
 		Markers = {
 			{
+				Type = 'OL',
+				Coords = { x = 3638.45, y = 3773.16, z = 27.52 },
+				Heading = 330.0
+			}, {
 				Type = 'IS',
 				Coords = { x = 3610.8, y = 3737.5, z = 27.69 },
 				Heading = 330.0
